@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/lestrrat-go/iter/mapiter"
 	"github.com/lestrrat-go/jwx/internal/base64"
@@ -66,6 +67,34 @@ type ecdsaPrivateKeyMarshalProxy struct {
 	Xx509CertThumbprintS256 *string                     `json:"x5t#S256,omitempty"`
 	Xx509URL                *string                     `json:"x5u,omitempty"`
 	Xy                      *string                     `json:"y,omitempty"`
+}
+
+var ecdsaPrivateKeyMarshalProxyPool = sync.Pool{
+	New: allocECDSAPrivateKeyMarshalProxy,
+}
+
+func allocECDSAPrivateKeyMarshalProxy() interface{} {
+	return &ecdsaPrivateKeyMarshalProxy{}
+}
+
+func getECDSAPrivateKeyMarshalProxy() *ecdsaPrivateKeyMarshalProxy {
+	return ecdsaPrivateKeyMarshalProxyPool.Get().(*ecdsaPrivateKeyMarshalProxy)
+}
+
+func releaseECDSAPrivateKeyMarshalProxy(v *ecdsaPrivateKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xcrv = nil
+	v.Xd = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xx = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	v.Xy = nil
+	ecdsaPrivateKeyMarshalProxyPool.Put(v)
 }
 
 func (h ecdsaPrivateKey) KeyType() jwa.KeyType {
@@ -376,7 +405,8 @@ func (h *ecdsaPrivateKey) Set(name string, value interface{}) error {
 }
 
 func (h *ecdsaPrivateKey) UnmarshalJSON(buf []byte) error {
-	var proxy ecdsaPrivateKeyMarshalProxy
+	proxy := getECDSAPrivateKeyMarshalProxy()
+	defer releaseECDSAPrivateKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal ecdsaPrivateKey`)
 	}
@@ -444,7 +474,8 @@ func (h *ecdsaPrivateKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h ecdsaPrivateKey) MarshalJSON() ([]byte, error) {
-	var proxy ecdsaPrivateKeyMarshalProxy
+	proxy := getECDSAPrivateKeyMarshalProxy()
+	defer releaseECDSAPrivateKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.EC
 	proxy.Xalgorithm = h.algorithm
 	proxy.Xcrv = h.crv
@@ -550,6 +581,33 @@ type ecdsaPublicKeyMarshalProxy struct {
 	Xx509CertThumbprintS256 *string                     `json:"x5t#S256,omitempty"`
 	Xx509URL                *string                     `json:"x5u,omitempty"`
 	Xy                      *string                     `json:"y,omitempty"`
+}
+
+var ecdsaPublicKeyMarshalProxyPool = sync.Pool{
+	New: allocECDSAPublicKeyMarshalProxy,
+}
+
+func allocECDSAPublicKeyMarshalProxy() interface{} {
+	return &ecdsaPublicKeyMarshalProxy{}
+}
+
+func getECDSAPublicKeyMarshalProxy() *ecdsaPublicKeyMarshalProxy {
+	return ecdsaPublicKeyMarshalProxyPool.Get().(*ecdsaPublicKeyMarshalProxy)
+}
+
+func releaseECDSAPublicKeyMarshalProxy(v *ecdsaPublicKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xcrv = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xx = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	v.Xy = nil
+	ecdsaPublicKeyMarshalProxyPool.Put(v)
 }
 
 func (h ecdsaPublicKey) KeyType() jwa.KeyType {
@@ -842,7 +900,8 @@ func (h *ecdsaPublicKey) Set(name string, value interface{}) error {
 }
 
 func (h *ecdsaPublicKey) UnmarshalJSON(buf []byte) error {
-	var proxy ecdsaPublicKeyMarshalProxy
+	proxy := getECDSAPublicKeyMarshalProxy()
+	defer releaseECDSAPublicKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal ecdsaPublicKey`)
 	}
@@ -899,7 +958,8 @@ func (h *ecdsaPublicKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h ecdsaPublicKey) MarshalJSON() ([]byte, error) {
-	var proxy ecdsaPublicKeyMarshalProxy
+	proxy := getECDSAPublicKeyMarshalProxy()
+	defer releaseECDSAPublicKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.EC
 	proxy.Xalgorithm = h.algorithm
 	proxy.Xcrv = h.crv

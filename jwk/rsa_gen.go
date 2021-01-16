@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/lestrrat-go/iter/mapiter"
 	"github.com/lestrrat-go/jwx/internal/base64"
@@ -82,6 +83,38 @@ type rsaPrivateKeyMarshalProxy struct {
 	Xx509CertThumbprint     *string           `json:"x5t,omitempty"`
 	Xx509CertThumbprintS256 *string           `json:"x5t#S256,omitempty"`
 	Xx509URL                *string           `json:"x5u,omitempty"`
+}
+
+var rsaPrivateKeyMarshalProxyPool = sync.Pool{
+	New: allocRSAPrivateKeyMarshalProxy,
+}
+
+func allocRSAPrivateKeyMarshalProxy() interface{} {
+	return &rsaPrivateKeyMarshalProxy{}
+}
+
+func getRSAPrivateKeyMarshalProxy() *rsaPrivateKeyMarshalProxy {
+	return rsaPrivateKeyMarshalProxyPool.Get().(*rsaPrivateKeyMarshalProxy)
+}
+
+func releaseRSAPrivateKeyMarshalProxy(v *rsaPrivateKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xd = nil
+	v.Xdp = nil
+	v.Xdq = nil
+	v.Xe = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xn = nil
+	v.Xp = nil
+	v.Xq = nil
+	v.Xqi = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	rsaPrivateKeyMarshalProxyPool.Put(v)
 }
 
 func (h rsaPrivateKey) KeyType() jwa.KeyType {
@@ -461,7 +494,8 @@ func (h *rsaPrivateKey) Set(name string, value interface{}) error {
 }
 
 func (h *rsaPrivateKey) UnmarshalJSON(buf []byte) error {
-	var proxy rsaPrivateKeyMarshalProxy
+	proxy := getRSAPrivateKeyMarshalProxy()
+	defer releaseRSAPrivateKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal rsaPrivateKey`)
 	}
@@ -573,7 +607,8 @@ func (h *rsaPrivateKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h rsaPrivateKey) MarshalJSON() ([]byte, error) {
-	var proxy rsaPrivateKeyMarshalProxy
+	proxy := getRSAPrivateKeyMarshalProxy()
+	defer releaseRSAPrivateKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.RSA
 	proxy.Xalgorithm = h.algorithm
 	if len(h.d) > 0 {
@@ -695,6 +730,32 @@ type rsaPublicKeyMarshalProxy struct {
 	Xx509CertThumbprint     *string           `json:"x5t,omitempty"`
 	Xx509CertThumbprintS256 *string           `json:"x5t#S256,omitempty"`
 	Xx509URL                *string           `json:"x5u,omitempty"`
+}
+
+var rsaPublicKeyMarshalProxyPool = sync.Pool{
+	New: allocRSAPublicKeyMarshalProxy,
+}
+
+func allocRSAPublicKeyMarshalProxy() interface{} {
+	return &rsaPublicKeyMarshalProxy{}
+}
+
+func getRSAPublicKeyMarshalProxy() *rsaPublicKeyMarshalProxy {
+	return rsaPublicKeyMarshalProxyPool.Get().(*rsaPublicKeyMarshalProxy)
+}
+
+func releaseRSAPublicKeyMarshalProxy(v *rsaPublicKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xe = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xn = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	rsaPublicKeyMarshalProxyPool.Put(v)
 }
 
 func (h rsaPublicKey) KeyType() jwa.KeyType {
@@ -966,7 +1027,8 @@ func (h *rsaPublicKey) Set(name string, value interface{}) error {
 }
 
 func (h *rsaPublicKey) UnmarshalJSON(buf []byte) error {
-	var proxy rsaPublicKeyMarshalProxy
+	proxy := getRSAPublicKeyMarshalProxy()
+	defer releaseRSAPublicKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal rsaPublicKey`)
 	}
@@ -1021,7 +1083,8 @@ func (h *rsaPublicKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h rsaPublicKey) MarshalJSON() ([]byte, error) {
-	var proxy rsaPublicKeyMarshalProxy
+	proxy := getRSAPublicKeyMarshalProxy()
+	defer releaseRSAPublicKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.RSA
 	proxy.Xalgorithm = h.algorithm
 	if len(h.e) > 0 {

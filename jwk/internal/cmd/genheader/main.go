@@ -618,6 +618,26 @@ func generateHeader(kt keyType) error {
 		}
 		fmt.Fprintf(&buf, "\n}")
 
+		// The proxy is allocated in a Pool
+		fmt.Fprintf(&buf, "\n\nvar %s%sMarshalProxyPool = sync.Pool {", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\nNew: alloc%s%sMarshalProxy,", kt.prefix, ht.name)
+		fmt.Fprintf(&buf, "\n}")
+
+		fmt.Fprintf(&buf, "\n\nfunc alloc%s%sMarshalProxy() interface{} {", kt.prefix, ht.name)
+		fmt.Fprintf(&buf, "\nreturn &%s%sMarshalProxy{}", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\n}")
+
+		fmt.Fprintf(&buf, "\n\nfunc get%s%sMarshalProxy() *%s%sMarshalProxy {", kt.prefix, ht.name, strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\nreturn %[1]s%[2]sMarshalProxyPool.Get().(*%[1]s%[2]sMarshalProxy)", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\n}")
+
+		fmt.Fprintf(&buf, "\n\nfunc release%s%sMarshalProxy(v *%s%sMarshalProxy) {", kt.prefix, ht.name, strings.ToLower(kt.prefix), ht.name)
+		for _, f := range ht.allHeaders {
+			fmt.Fprintf(&buf, "\nv.X%s = nil", f.name)
+		}
+		fmt.Fprintf(&buf, "\n%[1]s%[2]sMarshalProxyPool.Put(v)", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\n}")
+
 		fmt.Fprintf(&buf, "\n\nfunc (h %s) KeyType() jwa.KeyType {", structName)
 		fmt.Fprintf(&buf, "\nreturn %s", kt.keyType)
 		fmt.Fprintf(&buf, "\n}")
@@ -786,7 +806,8 @@ func generateHeader(kt keyType) error {
 		fmt.Fprintf(&buf, "\n}") // end func (h *%s) Set(name string, value interface{})
 
 		fmt.Fprintf(&buf, "\n\nfunc (h *%s) UnmarshalJSON(buf []byte) error {", structName)
-		fmt.Fprintf(&buf, "\nvar proxy %s%sMarshalProxy", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\nproxy := get%s%sMarshalProxy()", kt.prefix, ht.name)
+		fmt.Fprintf(&buf, "\ndefer release%s%sMarshalProxy(proxy)", kt.prefix, ht.name)
 		fmt.Fprintf(&buf, "\nif err := json.Unmarshal(buf, &proxy); err != nil {")
 		fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to unmarshal %s`)", structName)
 		fmt.Fprintf(&buf, "\n}")
@@ -843,7 +864,8 @@ func generateHeader(kt keyType) error {
 		fmt.Fprintf(&buf, "\n}")
 
 		fmt.Fprintf(&buf, "\n\nfunc (h %s) MarshalJSON() ([]byte, error) {", structName)
-		fmt.Fprintf(&buf, "\nvar proxy %s%sMarshalProxy", strings.ToLower(kt.prefix), ht.name)
+		fmt.Fprintf(&buf, "\nproxy := get%s%sMarshalProxy()", kt.prefix, ht.name)
+		fmt.Fprintf(&buf, "\ndefer release%s%sMarshalProxy(proxy)", kt.prefix, ht.name)
 		fmt.Fprintf(&buf, "\nproxy.XkeyType = %s", kt.keyType)
 		for _, f := range ht.allHeaders {
 			switch f.typ {

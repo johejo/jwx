@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/lestrrat-go/iter/mapiter"
 	"github.com/lestrrat-go/jwx/internal/base64"
@@ -52,6 +53,31 @@ type symmetricSymmetricKeyMarshalProxy struct {
 	Xx509CertThumbprint     *string           `json:"x5t,omitempty"`
 	Xx509CertThumbprintS256 *string           `json:"x5t#S256,omitempty"`
 	Xx509URL                *string           `json:"x5u,omitempty"`
+}
+
+var symmetricSymmetricKeyMarshalProxyPool = sync.Pool{
+	New: allocSymmetricSymmetricKeyMarshalProxy,
+}
+
+func allocSymmetricSymmetricKeyMarshalProxy() interface{} {
+	return &symmetricSymmetricKeyMarshalProxy{}
+}
+
+func getSymmetricSymmetricKeyMarshalProxy() *symmetricSymmetricKeyMarshalProxy {
+	return symmetricSymmetricKeyMarshalProxyPool.Get().(*symmetricSymmetricKeyMarshalProxy)
+}
+
+func releaseSymmetricSymmetricKeyMarshalProxy(v *symmetricSymmetricKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xoctets = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	symmetricSymmetricKeyMarshalProxyPool.Put(v)
 }
 
 func (h symmetricKey) KeyType() jwa.KeyType {
@@ -305,7 +331,8 @@ func (h *symmetricKey) Set(name string, value interface{}) error {
 }
 
 func (h *symmetricKey) UnmarshalJSON(buf []byte) error {
-	var proxy symmetricSymmetricKeyMarshalProxy
+	proxy := getSymmetricSymmetricKeyMarshalProxy()
+	defer releaseSymmetricSymmetricKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal symmetricKey`)
 	}
@@ -349,7 +376,8 @@ func (h *symmetricKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h symmetricKey) MarshalJSON() ([]byte, error) {
-	var proxy symmetricSymmetricKeyMarshalProxy
+	proxy := getSymmetricSymmetricKeyMarshalProxy()
+	defer releaseSymmetricSymmetricKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.OctetSeq
 	proxy.Xalgorithm = h.algorithm
 	proxy.XkeyID = h.keyID

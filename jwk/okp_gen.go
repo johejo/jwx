@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/lestrrat-go/iter/mapiter"
 	"github.com/lestrrat-go/jwx/internal/base64"
@@ -61,6 +62,33 @@ type okpPrivateKeyMarshalProxy struct {
 	Xx509CertThumbprint     *string                     `json:"x5t,omitempty"`
 	Xx509CertThumbprintS256 *string                     `json:"x5t#S256,omitempty"`
 	Xx509URL                *string                     `json:"x5u,omitempty"`
+}
+
+var okpPrivateKeyMarshalProxyPool = sync.Pool{
+	New: allocOKPPrivateKeyMarshalProxy,
+}
+
+func allocOKPPrivateKeyMarshalProxy() interface{} {
+	return &okpPrivateKeyMarshalProxy{}
+}
+
+func getOKPPrivateKeyMarshalProxy() *okpPrivateKeyMarshalProxy {
+	return okpPrivateKeyMarshalProxyPool.Get().(*okpPrivateKeyMarshalProxy)
+}
+
+func releaseOKPPrivateKeyMarshalProxy(v *okpPrivateKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xcrv = nil
+	v.Xd = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xx = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	okpPrivateKeyMarshalProxyPool.Put(v)
 }
 
 func (h okpPrivateKey) KeyType() jwa.KeyType {
@@ -353,7 +381,8 @@ func (h *okpPrivateKey) Set(name string, value interface{}) error {
 }
 
 func (h *okpPrivateKey) UnmarshalJSON(buf []byte) error {
-	var proxy okpPrivateKeyMarshalProxy
+	proxy := getOKPPrivateKeyMarshalProxy()
+	defer releaseOKPPrivateKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal okpPrivateKey`)
 	}
@@ -410,7 +439,8 @@ func (h *okpPrivateKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h okpPrivateKey) MarshalJSON() ([]byte, error) {
-	var proxy okpPrivateKeyMarshalProxy
+	proxy := getOKPPrivateKeyMarshalProxy()
+	defer releaseOKPPrivateKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.OKP
 	proxy.Xalgorithm = h.algorithm
 	proxy.Xcrv = h.crv
@@ -509,6 +539,32 @@ type okpPublicKeyMarshalProxy struct {
 	Xx509CertThumbprint     *string                     `json:"x5t,omitempty"`
 	Xx509CertThumbprintS256 *string                     `json:"x5t#S256,omitempty"`
 	Xx509URL                *string                     `json:"x5u,omitempty"`
+}
+
+var okpPublicKeyMarshalProxyPool = sync.Pool{
+	New: allocOKPPublicKeyMarshalProxy,
+}
+
+func allocOKPPublicKeyMarshalProxy() interface{} {
+	return &okpPublicKeyMarshalProxy{}
+}
+
+func getOKPPublicKeyMarshalProxy() *okpPublicKeyMarshalProxy {
+	return okpPublicKeyMarshalProxyPool.Get().(*okpPublicKeyMarshalProxy)
+}
+
+func releaseOKPPublicKeyMarshalProxy(v *okpPublicKeyMarshalProxy) {
+	v.Xalgorithm = nil
+	v.Xcrv = nil
+	v.XkeyID = nil
+	v.XkeyUsage = nil
+	v.Xkeyops = nil
+	v.Xx = nil
+	v.Xx509CertChain = nil
+	v.Xx509CertThumbprint = nil
+	v.Xx509CertThumbprintS256 = nil
+	v.Xx509URL = nil
+	okpPublicKeyMarshalProxyPool.Put(v)
 }
 
 func (h okpPublicKey) KeyType() jwa.KeyType {
@@ -783,7 +839,8 @@ func (h *okpPublicKey) Set(name string, value interface{}) error {
 }
 
 func (h *okpPublicKey) UnmarshalJSON(buf []byte) error {
-	var proxy okpPublicKeyMarshalProxy
+	proxy := getOKPPublicKeyMarshalProxy()
+	defer releaseOKPPublicKeyMarshalProxy(proxy)
 	if err := json.Unmarshal(buf, &proxy); err != nil {
 		return errors.Wrap(err, `failed to unmarshal okpPublicKey`)
 	}
@@ -829,7 +886,8 @@ func (h *okpPublicKey) UnmarshalJSON(buf []byte) error {
 }
 
 func (h okpPublicKey) MarshalJSON() ([]byte, error) {
-	var proxy okpPublicKeyMarshalProxy
+	proxy := getOKPPublicKeyMarshalProxy()
+	defer releaseOKPPublicKeyMarshalProxy(proxy)
 	proxy.XkeyType = jwa.OKP
 	proxy.Xalgorithm = h.algorithm
 	proxy.Xcrv = h.crv
