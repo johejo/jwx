@@ -15,6 +15,7 @@ import (
 	"github.com/lestrrat-go/jwx/internal/base64"
 	"github.com/lestrrat-go/jwx/internal/iter"
 	"github.com/lestrrat-go/jwx/internal/json"
+	"github.com/lestrrat-go/jwx/internal/pool"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/pkg/errors"
 )
@@ -491,7 +492,8 @@ func (h ecdsaPrivateKey) MarshalJSON() ([]byte, error) {
 		}
 		fmt.Fprintf(&buf, `}`)
 	}
-	var m map[string]interface{}
+	m := pool.GetScratchMap()
+	defer pool.ReleaseScratchMap(m)
 	if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
 		return nil, errors.Wrap(err, `failed to do second pass unmarshal during MarshalJSON`)
 	}
@@ -940,7 +942,8 @@ func (h ecdsaPublicKey) MarshalJSON() ([]byte, error) {
 		}
 		fmt.Fprintf(&buf, `}`)
 	}
-	var m map[string]interface{}
+	m := pool.GetScratchMap()
+	defer pool.ReleaseScratchMap(m)
 	if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
 		return nil, errors.Wrap(err, `failed to do second pass unmarshal during MarshalJSON`)
 	}
