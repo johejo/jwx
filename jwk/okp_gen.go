@@ -3,7 +3,6 @@
 package jwk
 
 import (
-	"bytes"
 	"context"
 	"crypto/x509"
 	"fmt"
@@ -430,8 +429,9 @@ func (h okpPrivateKey) MarshalJSON() ([]byte, error) {
 	proxy.Xx509CertThumbprint = h.x509CertThumbprint
 	proxy.Xx509CertThumbprintS256 = h.x509CertThumbprintS256
 	proxy.Xx509URL = h.x509URL
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	buf := pool.GetBytesBuffer()
+	defer pool.ReleaseBytesBuffer(buf)
+	enc := json.NewEncoder(buf)
 	if err := enc.Encode(proxy); err != nil {
 		return nil, errors.Wrap(err, `failed to encode proxy to JSON`)
 	}
@@ -445,14 +445,14 @@ func (h okpPrivateKey) MarshalJSON() ([]byte, error) {
 		sort.Strings(keys)
 		for i, k := range keys {
 			if hasContent || i > 0 {
-				fmt.Fprintf(&buf, `,`)
+				fmt.Fprintf(buf, `,`)
 			}
-			fmt.Fprintf(&buf, `%s:`, strconv.Quote(k))
+			fmt.Fprintf(buf, `%s:`, strconv.Quote(k))
 			if err := enc.Encode(h.privateParams[k]); err != nil {
 				return nil, errors.Wrapf(err, `failed to encode private param %s`, k)
 			}
 		}
-		fmt.Fprintf(&buf, `}`)
+		fmt.Fprintf(buf, `}`)
 	}
 	m := pool.GetScratchMap()
 	defer pool.ReleaseScratchMap(m)
@@ -844,8 +844,9 @@ func (h okpPublicKey) MarshalJSON() ([]byte, error) {
 	proxy.Xx509CertThumbprint = h.x509CertThumbprint
 	proxy.Xx509CertThumbprintS256 = h.x509CertThumbprintS256
 	proxy.Xx509URL = h.x509URL
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	buf := pool.GetBytesBuffer()
+	defer pool.ReleaseBytesBuffer(buf)
+	enc := json.NewEncoder(buf)
 	if err := enc.Encode(proxy); err != nil {
 		return nil, errors.Wrap(err, `failed to encode proxy to JSON`)
 	}
@@ -859,14 +860,14 @@ func (h okpPublicKey) MarshalJSON() ([]byte, error) {
 		sort.Strings(keys)
 		for i, k := range keys {
 			if hasContent || i > 0 {
-				fmt.Fprintf(&buf, `,`)
+				fmt.Fprintf(buf, `,`)
 			}
-			fmt.Fprintf(&buf, `%s:`, strconv.Quote(k))
+			fmt.Fprintf(buf, `%s:`, strconv.Quote(k))
 			if err := enc.Encode(h.privateParams[k]); err != nil {
 				return nil, errors.Wrapf(err, `failed to encode private param %s`, k)
 			}
 		}
-		fmt.Fprintf(&buf, `}`)
+		fmt.Fprintf(buf, `}`)
 	}
 	m := pool.GetScratchMap()
 	defer pool.ReleaseScratchMap(m)
